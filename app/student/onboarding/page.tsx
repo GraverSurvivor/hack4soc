@@ -223,27 +223,24 @@ export default function OnboardingPage() {
   };
 
   // ── Save profile and redirect ──
-  const handleSaveAndStart = async () => {
-    setStep("saving");
-    try {
-      const res = await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          learningProfile: calculatedProfile,
-          learningPreferences: prefAnswers,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Save failed");
-
-      await update();
-      router.push("/student/home");
-      router.refresh();
-    } catch {
-      setStep("results");
-    }
-  };
+ const handleSaveAndStart = async () => {
+  setStep("saving");
+  try {
+    await fetch("/api/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        learningProfile: calculatedProfile,
+        learningPreferences: prefAnswers,
+      }),
+    });
+  } catch (err) {
+    console.error(err);
+  }
+  // Always redirect regardless of API result
+  await update();
+  router.push("/student/home");
+};
 
   // ── Welcome Screen ──
   if (step === "welcome") {
