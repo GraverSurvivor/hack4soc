@@ -189,3 +189,6 @@ npm run db:studio    # Open Prisma Studio
 ## License
 
 MIT
+
+## Live Demo
+https://hack4soc-git-main-purohitdhruv07-9469s-projects.vercel.app/
