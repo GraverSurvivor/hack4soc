@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String            @id @default(cuid())
+  email         String            @unique
+  name          String
+  passwordHash  String?
+  role          String            @default("STUDENT")
+  avatar        String?
+  createdAt     DateTime          @default(now())
+  xp            Int               @default(0)
+  streak        Int               @default(0)
+  lastActive    DateTime?
+  lastLoginDate DateTime?
+  hasCompletedOnboarding Boolean @default(false)
+  learningProfile Json?
+  learningPreferences Json?
+  classrooms    ClassroomMember[]
+  brainProfile  BrainProfile?
+  badges        UserBadge[]
+  progress      StudentProgress[]
+  iepNotes      IEPNote[]         @relation("StudentIEP")
+  teacherNotes  IEPNote[]         @relation("TeacherIEP")
+  accounts      Account[]
+  sessions      Session[]
+  xpHistory     XPHistory[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Classroom {
+  id           String            @id @default(cuid())
+  name         String
+  inviteCode   String            @unique
+  teacherId    String
+  createdAt    DateTime          @default(now())
+  members      ClassroomMember[]
+  courses      Course[]
+  chatMessages ChatMessage[]
+  iepNotes     IEPNote[]
+}
+
+model ClassroomMember {
+  id          String    @id @default(cuid())
+  userId      String
+  classroomId String
+  joinedAt    DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, classroomId])
+}
+
+model Course {
+  id          String    @id @default(cuid())
+  title       String
+  classroomId String
+  rawText     String
+  fileName    String?
+  createdAt   DateTime  @default(now())
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  units       Unit[]
+}
+
+model Unit {
+  id        String            @id @default(cuid())
+  courseId  String
+  title     String
+  summary   String
+  storyMode String
+  calmMode  String
+  gameMode  String
+  order     Int               @default(0)
+  course    Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quizQuestions QuizQuestion[]
+  progress  StudentProgress[]
+}
+
+model QuizQuestion {
+  id          String @id @default(cuid())
+  unitId      String
+  question    String
+  options     Json
+  correct     String
+  explanation String
+  unit        Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+}
+
+model BrainProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  dominant  String
+  scores    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StudentProgress {
+  id           String        @id @default(cuid())
+  userId       String
+  unitId       String
+  completed    Boolean       @default(false)
+  quizScore    Int?
+  quizAnswers  Json?
+  learningMode String?
+  timeSpent    Int           @default(0)
+  completedAt  DateTime?
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit         Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, unitId])
+}
+
+model IEPNote {
+  id          String     @id @default(cuid())
+  studentId   String
+  teacherId   String
+  classroomId String
+  notes       String
+  difficulty  String     @default("standard")
+  is504       Boolean    @default(false)
+  extraSupport Boolean   @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  student     User       @relation("StudentIEP", fields: [studentId], references: [id], onDelete: Cascade)
+  teacher     User       @relation("TeacherIEP", fields: [teacherId], references: [id], onDelete: Cascade)
+  classroom   Classroom  @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classroomId])
+}
+
+model Badge {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String
+  icon        String
+  category    String
+  users       UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+model XPHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id          String    @id @default(cuid())
+  classroomId String
+  userId      String
+  userName    String
+  content     String
+  isPinned    Boolean   @default(false)
+  isAnnouncement Boolean @default(false)
+  isAI        Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+}
+
+model BrainQuizCache {
+  id        String   @id @default(cuid())
+  ageGroup  String   @unique
+  questions Json
+  createdAt DateTime @default(now())
+}

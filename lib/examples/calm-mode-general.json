@@ -1,0 +1,65 @@
+{
+  "unitTitle": "How Pollination Helps Plants",
+  "conceptSummary": "Pollination helps many plants make seeds. Pollen moves from one flower part to another so a new plant can begin.",
+  "keyPoints": [
+    "Flowers make pollen.",
+    "Pollinators can move pollen.",
+    "Bees and butterflies are common pollinators.",
+    "Pollination helps seeds form."
+  ],
+  "vocabulary": [
+    {
+      "term": "pollen",
+      "definition": "A tiny powder from flowers.",
+      "exampleSentence": "Pollen can stick to a bee."
+    },
+    {
+      "term": "nectar",
+      "definition": "A sweet liquid inside some flowers.",
+      "exampleSentence": "The bee drinks nectar from the flower."
+    },
+    {
+      "term": "pollination",
+      "definition": "The movement of pollen so a plant can make seeds.",
+      "exampleSentence": "Pollination helps the flower make seeds."
+    }
+  ],
+  "quizQuestions": [
+    {
+      "question": "What is pollen?",
+      "options": ["Tiny powder from flowers", "A leaf", "A cloud", "A root"],
+      "correctIndex": 0,
+      "explanation": "Pollen is a tiny powder made by flowers."
+    },
+    {
+      "question": "What can a pollinator do?",
+      "options": ["Move pollen", "Make rocks", "Stop sunlight", "Freeze soil"],
+      "correctIndex": 0,
+      "explanation": "A pollinator moves pollen between flowers."
+    },
+    {
+      "question": "Why is pollination important?",
+      "options": ["It helps seeds form", "It makes flowers disappear", "It dries oceans", "It breaks roots"],
+      "correctIndex": 0,
+      "explanation": "Pollination helps many plants make seeds."
+    }
+  ],
+  "cards": [
+    {
+      "heading": "Main Idea",
+      "body": "Pollination helps plants make seeds."
+    },
+    {
+      "heading": "What Moves",
+      "body": "Pollen moves from one flower part to another."
+    },
+    {
+      "heading": "Who Helps",
+      "body": "Bees, butterflies, wind, and other helpers can move pollen."
+    },
+    {
+      "heading": "Why It Matters",
+      "body": "Seeds can grow into new plants."
+    }
+  ]
+}

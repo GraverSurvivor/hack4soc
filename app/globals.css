@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+
+:root {
+  --font-space-grotesk: 'Space Grotesk', system-ui, sans-serif;
+  --font-lora: 'Lora', Georgia, serif;
+  --font-dm-sans: 'DM Sans', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-space-grotesk);
+  background-color: #0A1229;
+  color: #E8ECF4;
+  min-height: 100vh;
+}
+
+html.light body {
+  background-color: #F0F4FA;
+  color: #0F1C3F;
+}
+
+html.light .bg-navy-900 { background-color: #FFFFFF; }
+html.light .bg-navy-800 { background-color: #F8FAFC; }
+html.light .border-navy-700 { border-color: #E2E8F0; }
+html.light .text-white { color: #0F1C3F; }
+html.light .text-navy-300 { color: #64748B; }
+html.light .text-navy-400 { color: #94A3B8; }
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #1A2F52 25%, #2A4570 50%, #1A2F52 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

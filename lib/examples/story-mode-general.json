@@ -1,0 +1,48 @@
+{
+  "unitTitle": "How Pollination Helps Plants",
+  "conceptSummary": "Pollination helps many plants make seeds. Pollen moves from one flower part to another so a new plant can begin.",
+  "keyPoints": [
+    "Pollen is a tiny powder made by flowers.",
+    "Pollinators like bees can carry pollen between flowers.",
+    "Pollination helps plants make seeds.",
+    "Seeds can grow into new plants."
+  ],
+  "vocabulary": [
+    {
+      "term": "pollen",
+      "definition": "A tiny powder made by flowers.",
+      "exampleSentence": "The bee carried pollen on its legs."
+    },
+    {
+      "term": "pollinator",
+      "definition": "An animal or insect that moves pollen.",
+      "exampleSentence": "A butterfly can be a pollinator."
+    },
+    {
+      "term": "seed",
+      "definition": "The part of a plant that can grow into a new plant.",
+      "exampleSentence": "The seed grew into a sunflower."
+    }
+  ],
+  "quizQuestions": [
+    {
+      "question": "What does pollination help plants make?",
+      "options": ["Seeds", "Rocks", "Clouds", "Sand"],
+      "correctIndex": 0,
+      "explanation": "Pollination helps flowers make seeds."
+    },
+    {
+      "question": "Which animal can move pollen?",
+      "options": ["Bee", "Fish", "Lizard", "Worm"],
+      "correctIndex": 0,
+      "explanation": "Bees often carry pollen from flower to flower."
+    },
+    {
+      "question": "What is pollen?",
+      "options": ["A tiny flower powder", "A type of rain", "A kind of rock", "A plant root"],
+      "correctIndex": 0,
+      "explanation": "Pollen is a tiny powder made by flowers."
+    }
+  ],
+  "narrative": "Spark floated beside a bright yellow flower and waved to Maya. \"Today we follow a tiny treasure,\" Spark said. Maya looked closely and saw yellow dust on the flower. \"That is pollen,\" Spark explained. A bee landed with a soft buzz. As it drank nectar, pollen stuck to its fuzzy legs. The bee flew to the next flower, and some pollen rubbed off. \"That move matters,\" Spark said. \"When pollen reaches the right flower part, the plant can make seeds.\" Maya imagined each seed as a sleeping baby plant. The bee zipped away like a tiny delivery pilot. Spark smiled. \"Pollination is how many plants start the next chapter.\" Maya looked at the garden again. It was not just pretty. It was busy, alive, and full of quiet teamwork."
+}

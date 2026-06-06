@@ -1,0 +1,50 @@
+{
+  "unitTitle": "How Pollination Helps Plants",
+  "conceptSummary": "Pollination helps many plants make seeds. Pollen moves from one flower part to another so a new plant can begin.",
+  "keyPoints": [
+    "Pollen is the mission item.",
+    "Pollinators carry pollen.",
+    "Flowers use pollen to make seeds.",
+    "Seeds can grow into new plants."
+  ],
+  "vocabulary": [
+    {
+      "term": "pollen",
+      "definition": "A tiny powder made by flowers.",
+      "exampleSentence": "Collect the pollen to complete the mission."
+    },
+    {
+      "term": "pollinator",
+      "definition": "A helper that moves pollen.",
+      "exampleSentence": "The bee is your pollinator ally."
+    },
+    {
+      "term": "seed",
+      "definition": "A plant starter that can grow.",
+      "exampleSentence": "Unlock the seed to finish the quest."
+    }
+  ],
+  "quizQuestions": [
+    {
+      "question": "What is the mission item in pollination?",
+      "options": ["Pollen", "Ice", "Smoke", "Plastic"],
+      "correctIndex": 0,
+      "explanation": "Pollen is what moves during pollination."
+    },
+    {
+      "question": "What does a pollinator carry?",
+      "options": ["Pollen", "Bricks", "Snow", "Metal"],
+      "correctIndex": 0,
+      "explanation": "Pollinators can carry pollen between flowers."
+    },
+    {
+      "question": "What can seeds become?",
+      "options": ["New plants", "New rocks", "New clouds", "New rivers"],
+      "correctIndex": 0,
+      "explanation": "Seeds can grow into new plants."
+    }
+  ],
+  "questTitle": "Pollen Delivery Quest",
+  "questObjective": "Move pollen to the right flower so seeds can form.",
+  "xpReward": 150
+}
