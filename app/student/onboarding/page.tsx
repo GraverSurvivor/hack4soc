@@ -65,7 +65,7 @@ const MODE_DETAILS = {
 export default function OnboardingPage() {
   const router = useRouter();
   const { update } = useSession();
-  const [step, setStep] = useState<"welcome" | "neuro" | "pref" | "results" | "saving">("welcome");
+  const [step, setStep] = useState<"welcome" | "neuro" | "pref" | "results">("welcome");
   const [neuroAnswers, setNeuroAnswers] = useState<Record<string, number>>({});
   const [prefAnswers, setPrefAnswers] = useState<Record<string, string>>({});
   const [currentQ, setCurrentQ] = useState(0);
@@ -96,14 +96,12 @@ export default function OnboardingPage() {
   };
 
   const calculateAndShowResults = (prefs: Record<string, string>) => {
-    // ── FIXED: use neuroAnswers from closure, handle 0 values correctly ──
     const traits: Record<string, number> = {};
     const traitCounts: Record<string, number> = {};
 
     neuroQuestions.forEach((q) => {
       if (traits[q.trait] === undefined) traits[q.trait] = 0;
       if (traitCounts[q.trait] === undefined) traitCounts[q.trait] = 0;
-      // FIXED: use 1 as default (not 0) so unanswered = minimal score
       const answer = neuroAnswers[q.id] !== undefined ? neuroAnswers[q.id] : 1;
       traits[q.trait] += answer;
       traitCounts[q.trait] += 1;
@@ -155,24 +153,16 @@ export default function OnboardingPage() {
     setStep("results");
   };
 
-  const handleSaveAndStart = async () => {
-      setStep("saving");
-      setTimeout(() => { router.push("/student/home"); }, 3000);
-      try {
-        await fetch("/api/onboarding", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            learningProfile: calculatedProfile,
-            learningPreferences: prefAnswers,
-          }),
-        });
-        await update();
-        router.push("/student/home");
-      } catch (err) {
-        console.error(err);
-      }
-    };
+  // FIXED: instant redirect - no async, no saving screen, fire and forget
+  const handleSaveAndStart = () => {
+    fetch("/api/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ learningProfile: calculatedProfile, learningPreferences: prefAnswers }),
+    }).catch(() => {});
+    update().catch(() => {});
+    router.push("/student/home");
+  };
 
   if (step === "welcome") {
     return (
@@ -197,15 +187,6 @@ export default function OnboardingPage() {
     );
   }
 
-  if (step === "saving") {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-navy-900 gap-4">
-        <Brain className="w-16 h-16 text-violet-light animate-spin-slow" />
-        <h2 className="text-white text-xl font-bold animate-pulse">Personalizing your dashboard...</h2>
-      </div>
-    );
-  }
-
   if (step === "results") {
     const ModeIcon = MODE_DETAILS[recommendedMode].icon;
     return (
@@ -218,7 +199,6 @@ export default function OnboardingPage() {
             <h1 className="text-3xl md:text-4xl font-bold text-white">Your Cognitive Profile is Ready!</h1>
             <p className="text-navy-300">Here's a breakdown of your cognitive tendencies and recommended learning environment.</p>
           </div>
-
           <div className="grid gap-6 md:grid-cols-2">
             <Card className="border-navy-700 bg-navy-800/40 backdrop-blur-md">
               <CardContent className="p-6 space-y-6">
@@ -238,7 +218,6 @@ export default function OnboardingPage() {
                 </div>
               </CardContent>
             </Card>
-
             <Card className={`border-2 ${MODE_DETAILS[recommendedMode].bg} backdrop-blur-md flex flex-col justify-between`}>
               <CardContent className="p-6 space-y-6">
                 <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold uppercase tracking-wider">
@@ -257,7 +236,6 @@ export default function OnboardingPage() {
               </CardContent>
             </Card>
           </div>
-
           <div className="text-center pt-4">
             <Button size="lg" className="px-10 py-6 text-lg rounded-2xl shadow-lg" onClick={handleSaveAndStart}>
               Go to Learning Dashboard <ArrowRight className="w-5 h-5 ml-2" />
@@ -284,14 +262,10 @@ export default function OnboardingPage() {
           </p>
           <div className="flex items-center justify-between text-xs text-navy-400 font-medium">
             <span>Progress</span>
-            <span>
-              {isNeuro ? currentQ + 1 : neuroQuestions.length + currentQ + 1} of{" "}
-              {neuroQuestions.length + prefQuestions.length}
-            </span>
+            <span>{isNeuro ? currentQ + 1 : neuroQuestions.length + currentQ + 1} of {neuroQuestions.length + prefQuestions.length}</span>
           </div>
           <Progress value={progressPercent} className="h-1.5" />
         </div>
-
         <AnimatePresence mode="wait">
           <motion.div
             key={q.id}
@@ -302,16 +276,11 @@ export default function OnboardingPage() {
             className="bg-navy-800/60 backdrop-blur-md border border-navy-700 rounded-3xl p-6 md:p-8 space-y-8 shadow-card"
           >
             <h2 className="text-white text-xl md:text-2xl font-bold leading-relaxed">{q.text}</h2>
-
             {isNeuro ? (
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 {SCALE.map((label, i) => (
-                  <Button
-                    key={i}
-                    variant="outline"
-                    onClick={() => handleNeuro(q.id, i)}
-                    className="py-6 border-navy-600 text-white rounded-xl text-xs hover:bg-violet hover:border-violet transition-all active:scale-95"
-                  >
+                  <Button key={i} variant="outline" onClick={() => handleNeuro(q.id, i)}
+                    className="py-6 border-navy-600 text-white rounded-xl text-xs hover:bg-violet hover:border-violet transition-all active:scale-95">
                     {label}
                   </Button>
                 ))}
@@ -319,12 +288,8 @@ export default function OnboardingPage() {
             ) : (
               <div className="flex flex-col gap-3">
                 {q.options?.map((opt) => (
-                  <Button
-                    key={opt}
-                    variant="outline"
-                    onClick={() => handlePref((q as any).key, opt)}
-                    className="w-full py-7 border-navy-600 text-white text-left px-5 rounded-2xl hover:bg-violet hover:border-violet transition-all flex justify-start text-sm"
-                  >
+                  <Button key={opt} variant="outline" onClick={() => handlePref((q as any).key, opt)}
+                    className="w-full py-7 border-navy-600 text-white text-left px-5 rounded-2xl hover:bg-violet hover:border-violet transition-all flex justify-start text-sm">
                     {opt}
                   </Button>
                 ))}
