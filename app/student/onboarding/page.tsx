@@ -156,22 +156,23 @@ export default function OnboardingPage() {
   };
 
   const handleSaveAndStart = async () => {
-    setStep("saving");
-    try {
-      await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          learningProfile: calculatedProfile,
-          learningPreferences: prefAnswers,
-        }),
-      });
-    } catch (err) {
-      console.error(err);
-    }
-    await update();
-    router.push("/student/home");
-  };
+      setStep("saving");
+      setTimeout(() => { router.push("/student/home"); }, 3000);
+      try {
+        await fetch("/api/onboarding", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            learningProfile: calculatedProfile,
+            learningPreferences: prefAnswers,
+          }),
+        });
+        await update();
+        router.push("/student/home");
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
   if (step === "welcome") {
     return (
