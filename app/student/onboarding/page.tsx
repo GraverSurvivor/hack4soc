@@ -9,81 +9,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-// ── QUIZ DATA ──────────────────────────────────────────────
 const neuroQuestions = [
-  {
-    id: "q1",
-    text: "When reading, do you often lose your place or skip lines?",
-    trait: "dyslexia",
-  },
-  {
-    id: "q2",
-    text: "Do letters or words sometimes appear to move or blur while reading?",
-    trait: "dyslexia",
-  },
-  {
-    id: "q3",
-    text: "Do you find it hard to stay focused on one task for more than 10 minutes?",
-    trait: "adhd",
-  },
-  {
-    id: "q4",
-    text: "Do you often feel restless or feel the need to move around while studying?",
-    trait: "adhd",
-  },
-  {
-    id: "q5",
-    text: "Do you find basic arithmetic (addition, subtraction) unexpectedly difficult?",
-    trait: "dyscalculia",
-  },
-  {
-    id: "q6",
-    text: "Do you struggle to remember number sequences or phone numbers?",
-    trait: "dyscalculia",
-  },
-  {
-    id: "q7",
-    text: "Do you find it hard to understand spoken instructions the first time?",
-    trait: "auditory_processing",
-  },
-  {
-    id: "q8",
-    text: "Do you have difficulty expressing your thoughts in writing even when you know the answer?",
-    trait: "dysgraphia",
-  },
+  { id: "q1", text: "When reading, do you often lose your place or skip lines?", trait: "dyslexia" },
+  { id: "q2", text: "Do letters or words sometimes appear to move or blur while reading?", trait: "dyslexia" },
+  { id: "q3", text: "Do you find it hard to stay focused on one task for more than 10 minutes?", trait: "adhd" },
+  { id: "q4", text: "Do you often feel restless or feel the need to move around while studying?", trait: "adhd" },
+  { id: "q5", text: "Do you find basic arithmetic (addition, subtraction) unexpectedly difficult?", trait: "dyscalculia" },
+  { id: "q6", text: "Do you struggle to remember number sequences or phone numbers?", trait: "dyscalculia" },
+  { id: "q7", text: "Do you find it hard to understand spoken instructions the first time?", trait: "auditory_processing" },
+  { id: "q8", text: "Do you have difficulty expressing your thoughts in writing even when you know the answer?", trait: "dysgraphia" },
 ];
 
 const prefQuestions = [
-  {
-    id: "p1",
-    text: "How do you prefer to receive new information?",
-    options: ["Watching videos", "Reading text", "Listening to audio", "Hands-on practice"],
-    key: "input_style",
-  },
-  {
-    id: "p2",
-    text: "How long can you focus in one sitting?",
-    options: ["Less than 10 mins", "10–20 mins", "20–40 mins", "More than 40 mins"],
-    key: "focus_duration",
-  },
-  {
-    id: "p3",
-    text: "What helps you remember things best?",
-    options: ["Diagrams & visuals", "Repetition & flashcards", "Stories & examples", "Writing notes"],
-    key: "memory_style",
-  },
-  {
-    id: "p4",
-    text: "When you're stuck on a problem, what do you prefer?",
-    options: ["Step-by-step hints", "A worked example", "Ask someone", "Try again myself"],
-    key: "help_style",
-  },
-  {
-    id: "p5",
-    text: "What kind of feedback motivates you most?",
-    options: ["Points & badges", "Written praise", "Progress bars", "Leaderboards"],
-    key: "motivation_style",
-  },
+  { id: "p1", text: "How do you prefer to receive new information?", options: ["Watching videos", "Reading text", "Listening to audio", "Hands-on practice"], key: "input_style" },
+  { id: "p2", text: "How long can you focus in one sitting?", options: ["Less than 10 mins", "10–20 mins", "20–40 mins", "More than 40 mins"], key: "focus_duration" },
+  { id: "p3", text: "What helps you remember things best?", options: ["Diagrams & visuals", "Repetition & flashcards", "Stories & examples", "Writing notes"], key: "memory_style" },
+  { id: "p4", text: "When you're stuck on a problem, what do you prefer?", options: ["Step-by-step hints", "A worked example", "Ask someone", "Try again myself"], key: "help_style" },
+  { id: "p5", text: "What kind of feedback motivates you most?", options: ["Points & badges", "Written praise", "Progress bars", "Leaderboards"], key: "motivation_style" },
 ];
 
 const SCALE = ["Never", "Rarely", "Sometimes", "Often", "Always"];
@@ -127,16 +69,11 @@ export default function OnboardingPage() {
   const [neuroAnswers, setNeuroAnswers] = useState<Record<string, number>>({});
   const [prefAnswers, setPrefAnswers] = useState<Record<string, string>>({});
   const [currentQ, setCurrentQ] = useState(0);
-
   const [calculatedProfile, setCalculatedProfile] = useState<Record<string, number>>({});
   const [recommendedMode, setRecommendedMode] = useState<"story" | "calm" | "game">("calm");
 
-  const startQuiz = () => {
-    setStep("neuro");
-    setCurrentQ(0);
-  };
+  const startQuiz = () => { setStep("neuro"); setCurrentQ(0); };
 
-  // ── Neuro quiz handlers ──
   const handleNeuro = (id: string, value: number) => {
     const updated = { ...neuroAnswers, [id]: value };
     setNeuroAnswers(updated);
@@ -148,7 +85,6 @@ export default function OnboardingPage() {
     }
   };
 
-  // ── Pref quiz handlers ──
   const handlePref = (key: string, value: string) => {
     const updated = { ...prefAnswers, [key]: value };
     setPrefAnswers(updated);
@@ -159,29 +95,30 @@ export default function OnboardingPage() {
     }
   };
 
-  // ── Calculate results ──
   const calculateAndShowResults = (prefs: Record<string, string>) => {
+    // ── FIXED: use neuroAnswers from closure, handle 0 values correctly ──
     const traits: Record<string, number> = {};
-    neuroQuestions.forEach((q) => {
-      if (!traits[q.trait]) traits[q.trait] = 0;
-      traits[q.trait] += neuroAnswers[q.id] ?? 0;
-    });
-
     const traitCounts: Record<string, number> = {};
+
     neuroQuestions.forEach((q) => {
-      traitCounts[q.trait] = (traitCounts[q.trait] ?? 0) + 1;
+      if (traits[q.trait] === undefined) traits[q.trait] = 0;
+      if (traitCounts[q.trait] === undefined) traitCounts[q.trait] = 0;
+      // FIXED: use 1 as default (not 0) so unanswered = minimal score
+      const answer = neuroAnswers[q.id] !== undefined ? neuroAnswers[q.id] : 1;
+      traits[q.trait] += answer;
+      traitCounts[q.trait] += 1;
     });
 
     const profile: Record<string, number> = {};
     Object.keys(traits).forEach((t) => {
-      profile[t] = Math.round((traits[t] / (traitCounts[t] * 4)) * 100);
+      const maxScore = traitCounts[t] * 4;
+      profile[t] = maxScore > 0 ? Math.round((traits[t] / maxScore) * 100) : 0;
     });
+
     setCalculatedProfile(profile);
 
-    // Calculate Recommended mode
     const scores = { story: 0, calm: 0, game: 0 };
-    
-    // Preferences mapping
+
     if (prefs.input_style === "Watching videos") scores.calm += 2;
     else if (prefs.input_style === "Reading text") scores.story += 2;
     else if (prefs.input_style === "Listening to audio") { scores.calm += 1; scores.story += 1; }
@@ -207,54 +144,41 @@ export default function OnboardingPage() {
     else if (prefs.motivation_style === "Progress bars") scores.calm += 2;
     else if (prefs.motivation_style === "Leaderboards") scores.game += 2;
 
-    // Cognitive traits mapping
     if ((profile.adhd ?? 0) > 40) { scores.game += 3; scores.calm += 1; }
     if ((profile.dyslexia ?? 0) > 40) { scores.calm += 2; scores.story += 1; }
     if ((profile.auditory_processing ?? 0) > 40) { scores.calm += 3; }
     if ((profile.dyscalculia ?? 0) > 40) { scores.story += 2; }
     if ((profile.dysgraphia ?? 0) > 40) { scores.calm += 2; }
 
-    const dominant = (Object.entries(scores).sort(
-      (a, b) => b[1] - a[1]
-    )[0][0]) as "story" | "calm" | "game";
-
+    const dominant = (Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0]) as "story" | "calm" | "game";
     setRecommendedMode(dominant);
     setStep("results");
   };
 
-  // ── Save profile and redirect ──
- const handleSaveAndStart = async () => {
-  setStep("saving");
-  try {
-    await fetch("/api/onboarding", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        learningProfile: calculatedProfile,
-        learningPreferences: prefAnswers,
-      }),
-    });
-  } catch (err) {
-    console.error(err);
-  }
-  // Always redirect regardless of API result
-  await update();
-  router.push("/student/home");
-};
+  const handleSaveAndStart = async () => {
+    setStep("saving");
+    try {
+      await fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          learningProfile: calculatedProfile,
+          learningPreferences: prefAnswers,
+        }),
+      });
+    } catch (err) {
+      console.error(err);
+    }
+    await update();
+    router.push("/student/home");
+  };
 
-  // ── Welcome Screen ──
   if (step === "welcome") {
     return (
       <div className="min-h-screen bg-navy-900 flex items-center justify-center px-4 relative overflow-hidden">
-        {/* Glow meshes */}
         <div className="absolute top-10 left-10 w-96 h-96 bg-violet/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-xl w-full text-center space-y-6 z-10"
-        >
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl w-full text-center space-y-6 z-10">
           <div className="inline-flex p-4 rounded-3xl bg-violet/10 border border-violet/20 shadow-lg mb-2">
             <Brain className="w-16 h-16 text-violet-light animate-pulse" />
           </div>
@@ -272,7 +196,6 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── Saving State ──
   if (step === "saving") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-navy-900 gap-4">
@@ -282,10 +205,8 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── Onboarding Quiz Results ──
   if (step === "results") {
     const ModeIcon = MODE_DETAILS[recommendedMode].icon;
-
     return (
       <div className="min-h-screen bg-navy-900 py-10 px-4 md:px-8 relative overflow-y-auto">
         <div className="max-w-4xl mx-auto space-y-8 z-10">
@@ -298,7 +219,6 @@ export default function OnboardingPage() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Traits scores */}
             <Card className="border-navy-700 bg-navy-800/40 backdrop-blur-md">
               <CardContent className="p-6 space-y-6">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-navy-700 pb-3">
@@ -318,7 +238,6 @@ export default function OnboardingPage() {
               </CardContent>
             </Card>
 
-            {/* Recommendation Card */}
             <Card className={`border-2 ${MODE_DETAILS[recommendedMode].bg} backdrop-blur-md flex flex-col justify-between`}>
               <CardContent className="p-6 space-y-6">
                 <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold uppercase tracking-wider">
@@ -329,15 +248,10 @@ export default function OnboardingPage() {
                     <ModeIcon className={`w-12 h-12 ${MODE_DETAILS[recommendedMode].color}`} />
                     <h3 className="text-2xl font-bold text-white">{MODE_DETAILS[recommendedMode].name}</h3>
                   </div>
-                  <p className="text-navy-300 text-sm leading-relaxed">
-                    {MODE_DETAILS[recommendedMode].desc}
-                  </p>
+                  <p className="text-navy-300 text-sm leading-relaxed">{MODE_DETAILS[recommendedMode].desc}</p>
                 </div>
-
                 <div className="border-t border-navy-700/50 pt-4 mt-6">
-                  <p className="text-xs text-navy-400 italic">
-                    Note: You can switch between modes at any point in any unit to match your energy level.
-                  </p>
+                  <p className="text-xs text-navy-400 italic">Note: You can switch between modes at any point in any unit to match your energy level.</p>
                 </div>
               </CardContent>
             </Card>
@@ -353,7 +267,6 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── Quiz Steps (Neuro / Prefs) ──
   const isNeuro = step === "neuro";
   const q = isNeuro ? neuroQuestions[currentQ] : prefQuestions[currentQ];
   const progressPercent = isNeuro
@@ -363,7 +276,6 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-navy-900 flex flex-col items-center justify-center px-4 relative overflow-hidden">
       <div className="absolute top-10 right-10 w-96 h-96 bg-violet/5 rounded-full blur-3xl pointer-events-none" />
-
       <div className="w-full max-w-xl space-y-6 z-10">
         <div className="space-y-2">
           <p className="text-violet-light text-sm font-semibold tracking-wider uppercase">
@@ -410,7 +322,7 @@ export default function OnboardingPage() {
                     key={opt}
                     variant="outline"
                     onClick={() => handlePref((q as any).key, opt)}
-                    className="w-full py-7 border-navy-600 text-white text-left px-5 rounded-2xl hover:bg-violet hover:border-violet transition-all active:scale-98 flex justify-start text-sm"
+                    className="w-full py-7 border-navy-600 text-white text-left px-5 rounded-2xl hover:bg-violet hover:border-violet transition-all flex justify-start text-sm"
                   >
                     {opt}
                   </Button>
