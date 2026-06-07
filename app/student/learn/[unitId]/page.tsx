@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Award, CheckCircle2, Clock3, ShieldCheck, Sparkles } from "lucide-react";
@@ -14,6 +13,7 @@ import { AITutor } from "@/components/chat/AITutor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { parseCalmContent, parseStoryContent } from "@/lib/content";
 import { toast } from "sonner";
 
 interface Unit {
@@ -32,6 +32,7 @@ interface Unit {
   }>;
   course?: { id: string; title: string };
   progress?: Array<{ completed: boolean; quizScore?: number | null; learningMode?: string | null }>;
+  brainProfile?: string | null;
   iepNote?: {
     notes: string;
     difficulty: string;
@@ -43,46 +44,28 @@ interface Unit {
 type Phase = "select" | "learn" | "quiz" | "done";
 
 export default function LearnPage() {
-  const { data: session } = useSession();
   const { unitId } = useParams<{ unitId: string }>();
   const [unit, setUnit] = useState<Unit | null>(null);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<Phase>("select");
   const [mode, setMode] = useState<string>("calm");
   const [brainProfile, setBrainProfile] = useState<string | null>(null);
-  const [studentUser, setStudentUser] = useState<any>(null);
   const [score, setScore] = useState<number | null>(null);
   const [startTime] = useState(Date.now());
 
   useEffect(() => {
-    if (!session?.user?.id) return;
-
     fetch(`/api/units/${unitId}`)
       .then((r) => r.json())
       .then((data) => {
         setUnit(data);
         if (data.progress?.[0]?.learningMode) setMode(data.progress[0].learningMode);
-
-        const classroomId = localStorage.getItem("classroomId");
-        if (classroomId) {
-          fetch(`/api/classrooms/${classroomId}`)
-            .then((r) => r.json())
-            .then((classroom) => {
-              const me = classroom.members?.find(
-                (m: { user: { id: string; brainProfile?: { dominant: string } } }) => m.user.id === session.user.id
-              );
-              if (me?.user?.brainProfile) {
-                setBrainProfile(me.user.brainProfile.dominant);
-                setMode(me.user.brainProfile.dominant);
-              }
-              if (me?.user) {
-                setStudentUser(me.user);
-              }
-            });
+        if (data.brainProfile) {
+          setBrainProfile(data.brainProfile);
+          if (!data.progress?.[0]?.learningMode) setMode(data.brainProfile);
         }
       })
       .finally(() => setLoading(false));
-  }, [unitId, session?.user?.id]);
+  }, [unitId]);
 
   const handleModeSelect = (selectedMode: string) => {
     setMode(selectedMode);
@@ -124,11 +107,10 @@ export default function LearnPage() {
   }
 
   const iep = unit.iepNote;
-  const lp = studentUser?.learningProfile || {};
   const accommodations = {
-    textToSpeech: iep?.is504 || iep?.extraSupport || (lp.auditory_processing ?? 0) > 40,
-    largeFont: iep?.difficulty === "easy" || iep?.extraSupport || (lp.dyslexia ?? 0) > 40,
-    extendedTime: iep?.is504 || (lp.adhd ?? 0) > 40,
+    textToSpeech: iep?.is504 || iep?.extraSupport || false,
+    largeFont: iep?.difficulty === "easy" || iep?.extraSupport || false,
+    extendedTime: iep?.is504 || false,
   };
   const hasSupport = accommodations.textToSpeech || accommodations.largeFont || accommodations.extendedTime;
 
@@ -172,40 +154,18 @@ export default function LearnPage() {
   }
 
   if (phase === "learn") {
-    const rawContent =
+    const content =
       mode === "story"
-        ? unit.storyMode
+        ? parseStoryContent(unit.storyMode)
         : mode === "game"
         ? unit.gameMode
-        : unit.calmMode;
-
-    let displayContent = rawContent;
-    try {
-      const parsed = JSON.parse(rawContent);
-      if (mode === "story") {
-        displayContent = parsed.narrative || parsed.content || rawContent;
-      } else if (mode === "calm") {
-        if (Array.isArray(parsed.cards)) {
-          displayContent = parsed.cards.map((c: any) => `### ${c.heading || c.title || c.concept || "Concept"}\n${c.body || c.content || ""}`).join("\n\n");
-        } else if (parsed.content) {
-          displayContent = parsed.content;
-        }
-      } else if (mode === "game") {
-        if (parsed.questTitle) {
-          displayContent = `## ${parsed.questTitle}\n\n${parsed.questObjective || ""}\n\nReward: ${parsed.xpReward || 100} XP`;
-        } else if (parsed.content) {
-          displayContent = parsed.content;
-        }
-      }
-    } catch {
-      // It's plain text, use as-is
-    }
+        : parseCalmContent(unit.calmMode);
 
     return (
       <>
         {mode === "story" && (
           <StoryMode
-            content={displayContent}
+            content={content}
             title={unit.title}
             onComplete={() => setPhase("quiz")}
             textToSpeech={accommodations.textToSpeech}
@@ -214,7 +174,7 @@ export default function LearnPage() {
         )}
         {mode === "calm" && (
           <CalmMode
-            content={displayContent}
+            content={content}
             title={unit.title}
             onComplete={() => setPhase("quiz")}
             textToSpeech={accommodations.textToSpeech}
@@ -224,7 +184,7 @@ export default function LearnPage() {
         )}
         {mode === "game" && (
           <GameMode
-            content={displayContent}
+            content={content}
             title={unit.title}
             onComplete={() => setPhase("quiz")}
             largeFont={accommodations.largeFont}

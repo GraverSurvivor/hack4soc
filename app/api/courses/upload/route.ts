@@ -5,6 +5,12 @@ import { requireTeacher } from "@/lib/auth";
 import { extractTextFromFile } from "@/lib/parser";
 import { generateCourseContent } from "@/lib/claude";
 import { checkRateLimit } from "@/lib/rate-limit";
+import {
+  correctIndexToLetter,
+  formatCalmMode,
+  formatGameMode,
+  formatStoryMode,
+} from "@/lib/content";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
@@ -89,29 +95,38 @@ export async function POST(req: NextRequest) {
         fileName: file.name,
         units: {
           create: Array.from({ length: unitCount }, (_, index) => {
-            const storyUnit = story[index] ?? {};
-            const calmUnit = calm[index] ?? {};
-            const gameUnit = game[index] ?? {};
+            const storyUnit = (story[index] ?? {}) as Record<string, unknown>;
+            const calmUnit = (calm[index] ?? {}) as Record<string, unknown>;
+            const gameUnit = (game[index] ?? {}) as Record<string, unknown>;
 
-            const unitTitle =
-              storyUnit.unitTitle ?? calmUnit.unitTitle ?? gameUnit.unitTitle ?? `Unit ${index + 1}`;
-            const summary =
-              storyUnit.conceptSummary ?? calmUnit.conceptSummary ?? gameUnit.conceptSummary ?? "";
-            const quizSource =
-              storyUnit.quizQuestions ?? calmUnit.quizQuestions ?? gameUnit.quizQuestions ?? [];
+            const unitTitle = String(
+              storyUnit.unitTitle ?? calmUnit.unitTitle ?? gameUnit.unitTitle ?? `Unit ${index + 1}`
+            );
+            const summary = String(
+              storyUnit.conceptSummary ?? calmUnit.conceptSummary ?? gameUnit.conceptSummary ?? ""
+            );
+            const quizSource = (storyUnit.quizQuestions ??
+              calmUnit.quizQuestions ??
+              gameUnit.quizQuestions ??
+              []) as Array<{
+              question?: string;
+              options?: string[];
+              correctIndex?: number;
+              explanation?: string;
+            }>;
 
             return {
               title: unitTitle,
               summary,
-              storyMode: JSON.stringify(storyUnit),
-              calmMode: JSON.stringify(calmUnit),
-              gameMode: JSON.stringify(gameUnit),
+              storyMode: formatStoryMode(storyUnit),
+              calmMode: formatCalmMode(calmUnit),
+              gameMode: formatGameMode(gameUnit),
               order: index,
               quizQuestions: {
-                create: quizSource.map((q: any) => ({
+                create: quizSource.map((q) => ({
                   question: q.question ?? "",
                   options: (q.options ?? []) as Prisma.InputJsonValue,
-                  correct: String(q.correctIndex ?? 0),
+                  correct: correctIndexToLetter(q.correctIndex ?? 0),
                   explanation: q.explanation ?? "",
                 })),
               },

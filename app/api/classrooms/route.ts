@@ -21,19 +21,34 @@ export async function GET() {
 
     const memberships = await prisma.classroomMember.findMany({
       where: { userId: session.user.id },
+      orderBy: { joinedAt: "desc" },
       include: {
         classroom: {
           include: {
             _count: { select: { members: true, courses: true } },
+            teacher: { select: { name: true } },
             courses: {
-              include: { units: { orderBy: { order: "asc" } } },
+              orderBy: { createdAt: "desc" },
+              include: {
+                units: {
+                  orderBy: { order: "asc" },
+                  include: {
+                    progress: { where: { userId: session.user.id } },
+                  },
+                },
+              },
             },
           },
         },
       },
     });
 
-    return NextResponse.json(memberships.map((m) => m.classroom));
+    return NextResponse.json(
+      memberships.map((m) => ({
+        ...m.classroom,
+        joinedAt: m.joinedAt,
+      }))
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error";
     return NextResponse.json({ error: message }, { status: message === "Unauthorized" ? 401 : 403 });

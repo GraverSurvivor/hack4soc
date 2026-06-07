@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { chatMessageSchema } from "@/lib/validations";
-import { moderateChatMessage, generateSparkChatResponse } from "@/lib/claude";
+import { generateSparkChatResponse, moderateChatMessage } from "@/lib/claude";
+import { parseCalmContent, parseStoryContent } from "@/lib/content";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
@@ -66,9 +67,14 @@ export async function POST(req: NextRequest) {
         include: { units: true },
       });
       const courseContext = courses
-        .flatMap((c) => c.units)
-        .map((u) => `${u.title}: ${u.summary}`)
-        .join("\n");
+        .flatMap((c) =>
+          c.units.map((u) => {
+            const story = parseStoryContent(u.storyMode).slice(0, 400);
+            const calm = parseCalmContent(u.calmMode).slice(0, 300);
+            return `Unit: ${u.title}\nSummary: ${u.summary}\nStory excerpt: ${story}\nCalm excerpt: ${calm}`;
+          })
+        )
+        .join("\n\n");
 
       const question = content.replace(/@spark/gi, "").trim();
       const answer = await generateSparkChatResponse(question, courseContext);

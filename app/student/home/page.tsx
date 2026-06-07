@@ -8,9 +8,10 @@ import {
   Award,
   BookOpen,
   CheckCircle2,
-  Clock3,
+  GraduationCap,
   Flame,
   MessageCircle,
+  Plus,
   Sparkles,
   Star,
   Target,
@@ -18,29 +19,14 @@ import {
 } from "lucide-react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { BrainStyleCard } from "@/components/shared/BrainStyleCard";
+import {
+  getClassroomProgress,
+  useClassrooms,
+} from "@/components/shared/ClassroomProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface ProgressItem {
-  completed: boolean;
-  quizScore?: number | null;
-  learningMode?: string | null;
-}
-
-interface Unit {
-  id: string;
-  title: string;
-  summary: string;
-  progress?: ProgressItem[];
-}
-
-interface Course {
-  id: string;
-  title: string;
-  units: Unit[];
-}
 
 interface BrainProfile {
   dominant: string;
@@ -49,11 +35,10 @@ interface BrainProfile {
 
 export default function StudentHome() {
   const { data: session } = useSession();
+  const { classrooms, activeClassroom, setActiveClassroom, loading: classesLoading } =
+    useClassrooms();
   const [profile, setProfile] = useState<BrainProfile | null>(null);
   const [xp, setXp] = useState({ xp: 0, streak: 0 });
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [classroomName, setClassroomName] = useState("");
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const userId = session?.user?.id;
@@ -61,47 +46,51 @@ export default function StudentHome() {
 
     Promise.all([
       fetch(`/api/students/${userId}/xp`).then((r) => r.json()),
-      fetch("/api/classrooms").then((r) => r.json()),
-    ])
-      .then(async ([xpData, classrooms]) => {
-        setXp(xpData);
-        if (!Array.isArray(classrooms) || classrooms.length === 0) return;
+      fetch("/api/quiz/brain-profile?profile=1").then((r) => r.json()),
+    ]).then(([xpData, brainData]) => {
+      setXp(xpData);
+      if (brainData?.dominant) setProfile(brainData);
+    });
+  }, [session]);
 
-        const classroom = classrooms[0];
-        localStorage.setItem("classroomId", classroom.id);
-        const res = await fetch(`/api/classrooms/${classroom.id}`);
-        const data = await res.json();
+  const allProgress = useMemo(() => {
+    let completed = 0;
+    let total = 0;
+    let nextUnit: {
+      id: string;
+      title: string;
+      courseTitle: string;
+      classroomName: string;
+      classroomId: string;
+    } | null = null;
 
-        const me = data.members?.find(
-          (m: { user: { id: string; brainProfile?: BrainProfile } }) => m.user.id === userId
-        );
-        if (me?.user.brainProfile) setProfile(me.user.brainProfile);
-        setClassroomName(data.name || classroom.name || "");
-        setCourses(data.courses || []);
-      })
-      .finally(() => setLoading(false));
-  }, [session?.user?.id]);
+    for (const classroom of classrooms) {
+      const { units, nextUnit: classroomNext } = getClassroomProgress(classroom);
+      completed += units.filter((u) => u.completed).length;
+      total += units.length;
 
-  const flatUnits = useMemo(
-    () =>
-      courses.flatMap((course) =>
-        course.units.map((unit) => ({
-          ...unit,
-          courseId: course.id,
-          courseTitle: course.title,
-          completed: Boolean(unit.progress?.[0]?.completed),
-          score: unit.progress?.[0]?.quizScore,
-        }))
-      ),
-    [courses]
-  );
+      if (!nextUnit && classroomNext && !classroomNext.completed) {
+        nextUnit = {
+          id: classroomNext.id,
+          title: classroomNext.title,
+          courseTitle: classroomNext.courseTitle,
+          classroomName: classroom.name,
+          classroomId: classroom.id,
+        };
+      }
+    }
 
-  const completedUnits = flatUnits.filter((unit) => unit.completed).length;
-  const totalUnits = flatUnits.length;
-  const overallProgress = totalUnits ? Math.round((completedUnits / totalUnits) * 100) : 0;
-  const nextUnit = flatUnits.find((unit) => !unit.completed) || flatUnits[0];
-  const needsReview = flatUnits.find(
-    (unit) => typeof unit.score === "number" && unit.score < 80
+    return {
+      completed,
+      total,
+      percent: total ? Math.round((completed / total) * 100) : 0,
+      nextUnit,
+    };
+  }, [classrooms]);
+
+  const activeProgress = useMemo(
+    () => (activeClassroom ? getClassroomProgress(activeClassroom) : null),
+    [activeClassroom]
   );
 
   return (
@@ -113,20 +102,21 @@ export default function StudentHome() {
           className="grid gap-4 lg:grid-cols-[1.5fr_1fr]"
         >
           <div>
-            <p className="text-sm text-violet-light font-medium">
-              {classroomName || "Student dashboard"}
-            </p>
+            <p className="text-sm text-violet-light font-medium">Student dashboard</p>
             <h1 className="text-2xl md:text-4xl font-bold text-white mt-1">
               Welcome back, {session?.user?.name?.split(" ")[0] || "learner"}.
             </h1>
             <p className="text-navy-300 mt-2 max-w-2xl">
-              Your next lesson, progress, XP, badges, and learning style are all in one place
-              so you do not have to hunt for what to do next.
+              All your classes in one place — pick up where you left off, join new classes,
+              and track progress across every classroom.
             </p>
           </div>
-          <div className="flex gap-3 lg:justify-end">
+          <div className="flex gap-3 lg:justify-end flex-wrap">
             <Link href="/student/join">
-              <Button variant="outline">Join Class</Button>
+              <Button variant="outline">
+                <Plus className="w-4 h-4" />
+                Join Class
+              </Button>
             </Link>
             <Link href="/student/badges">
               <Button variant="amber">
@@ -137,14 +127,17 @@ export default function StudentHome() {
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="grid gap-4 md:grid-cols-4"
-        >
-          <Card className="hover:border-amber-500/30 transition-colors duration-300">
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <GraduationCap className="w-8 h-8 text-violet-light" />
+              <div>
+                <p className="text-2xl font-bold text-white">{classrooms.length}</p>
+                <p className="text-xs text-navy-400">Classes joined</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <Star className="w-8 h-8 text-amber-400" />
               <div>
@@ -153,7 +146,7 @@ export default function StudentHome() {
               </div>
             </CardContent>
           </Card>
-          <Card className="hover:border-orange-500/30 transition-colors duration-300">
+          <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <Flame className={`w-8 h-8 text-orange-400 ${xp.streak > 0 ? "animate-flame" : ""}`} />
               <div>
@@ -162,37 +155,27 @@ export default function StudentHome() {
               </div>
             </CardContent>
           </Card>
-          <Card className="hover:border-emerald-500/30 transition-colors duration-300">
-            <CardContent className="p-4 flex items-center gap-3">
-              <CheckCircle2 className="w-8 h-8 text-emerald-300" />
-              <div>
-                <p className="text-2xl font-bold text-white">
-                  {completedUnits}/{totalUnits}
-                </p>
-                <p className="text-xs text-navy-400">Units complete</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:border-sky-500/30 transition-colors duration-300">
+          <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <Target className="w-8 h-8 text-sky-300" />
               <div>
-                <p className="text-2xl font-bold text-white">{overallProgress}%</p>
-                <p className="text-xs text-navy-400">Course progress</p>
+                <p className="text-2xl font-bold text-white">{allProgress.percent}%</p>
+                <p className="text-xs text-navy-400">Overall progress</p>
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        {loading ? (
+        {classesLoading ? (
           <Skeleton className="h-64" />
-        ) : courses.length === 0 ? (
+        ) : classrooms.length === 0 ? (
           <Card className="border-violet/30 bg-violet/5">
             <CardContent className="p-8 text-center">
               <BookOpen className="w-12 h-12 text-violet-light mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-white">Join your first classroom</h2>
               <p className="text-navy-300 mt-2 mb-5">
-                Enter your teacher's invite code to unlock courses, units, quizzes, XP, and badges.
+                Enter your teacher&apos;s invite code to unlock courses, units, quizzes, XP, and badges.
+                You can join as many classes as you need.
               </p>
               <Link href="/student/join">
                 <Button>Join Classroom</Button>
@@ -200,106 +183,158 @@ export default function StudentHome() {
             </CardContent>
           </Card>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-            className="grid gap-6 lg:grid-cols-[1.35fr_0.9fr]"
-          >
-            <Card className="border-violet/30 hover:border-violet/50 transition-colors duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-violet-light font-medium">Next best step</p>
-                    <h2 className="text-xl font-semibold text-white mt-1">
-                      {nextUnit?.title || "All caught up"}
-                    </h2>
-                    <p className="text-sm text-navy-300 mt-2">
-                      {nextUnit
-                        ? `${nextUnit.courseTitle} - ${nextUnit.summary || "Open this unit to continue learning."}`
-                        : "Your teacher has not added units yet."}
-                    </p>
-                  </div>
-                  <Clock3 className="w-8 h-8 text-sky-300 shrink-0" />
-                </div>
-                <Progress value={overallProgress} className="mt-6" />
-                <div className="flex flex-wrap gap-3 mt-5">
-                  {nextUnit && (
-                    <Link href={`/student/learn/${nextUnit.id}`}>
-                      <Button>Open Unit</Button>
-                    </Link>
-                  )}
-                  <Link href="/student/courses">
-                    <Button variant="outline">View Courses</Button>
-                  </Link>
-                </div>
-                {needsReview && (
-                  <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-                    <p className="text-sm font-medium text-amber-200">Review suggestion</p>
-                    <p className="text-sm text-navy-200 mt-1">
-                      Revisit {needsReview.title}. Your last quiz score was {needsReview.score}%,
-                      and a quick review can turn that into bonus XP.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <>
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-white">My Classes</h2>
+                <Link href="/student/join" className="text-sm text-violet-light hover:underline">
+                  + Join another
+                </Link>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {classrooms.map((classroom) => {
+                  const progress = getClassroomProgress(classroom);
+                  const isActive = classroom.id === activeClassroom?.id;
 
-            {profile ? (
-              <BrainStyleCard dominant={profile.dominant} scores={profile.scores} />
-            ) : (
-              <Card className="border-amber-500/30 bg-amber-500/5">
+                  return (
+                    <Card
+                      key={classroom.id}
+                      className={`cursor-pointer transition-all hover:border-violet/50 ${
+                        isActive ? "border-violet/60 bg-violet/5 ring-1 ring-violet/30" : ""
+                      }`}
+                      onClick={() => setActiveClassroom(classroom.id)}
+                    >
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-white truncate">{classroom.name}</h3>
+                            <p className="text-xs text-navy-400 mt-1">
+                              {classroom.teacher?.name || "Teacher"}
+                              {" · "}
+                              {progress.total} units
+                            </p>
+                          </div>
+                          {isActive && (
+                            <span className="text-xs bg-violet/20 text-violet-light px-2 py-0.5 rounded-full shrink-0">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <Progress value={progress.percent} className="mt-4" />
+                        <p className="text-xs text-navy-400 mt-2">
+                          {progress.completed}/{progress.total} complete · {progress.percent}%
+                        </p>
+                        <div className="flex gap-2 mt-4">
+                          <Link
+                            href="/student/courses"
+                            onClick={() => setActiveClassroom(classroom.id)}
+                            className="flex-1"
+                          >
+                            <Button size="sm" variant="outline" className="w-full">
+                              Courses
+                            </Button>
+                          </Link>
+                          <Link
+                            href="/student/community"
+                            onClick={() => setActiveClassroom(classroom.id)}
+                            className="flex-1"
+                          >
+                            <Button size="sm" variant="ghost" className="w-full">
+                              Chat
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+
+            <div className="grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
+              <Card className="border-violet/30">
                 <CardContent className="p-6">
-                  <Sparkles className="w-8 h-8 text-amber-300 mb-3" />
-                  <h2 className="text-lg font-semibold text-white">Find your learning style</h2>
-                  <p className="text-sm text-navy-300 mt-2 mb-4">
-                    Take a short quiz so lessons can recommend story, calm, or game mode.
-                  </p>
-                  <Link href="/student/quiz/brain-profile">
-                    <Button variant="amber">Take Quiz</Button>
-                  </Link>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-violet-light font-medium">Continue learning</p>
+                      <h2 className="text-xl font-semibold text-white mt-1">
+                        {allProgress.nextUnit?.title || "All caught up!"}
+                      </h2>
+                      <p className="text-sm text-navy-300 mt-2">
+                        {allProgress.nextUnit
+                          ? `${allProgress.nextUnit.classroomName} · ${allProgress.nextUnit.courseTitle}`
+                          : activeClassroom
+                          ? `${activeClassroom.name} — check back for new units.`
+                          : "Select a class above to get started."}
+                      </p>
+                    </div>
+                    <CheckCircle2 className="w-8 h-8 text-emerald-300 shrink-0" />
+                  </div>
+                  {activeProgress && (
+                    <Progress value={activeProgress.percent} className="mt-6" />
+                  )}
+                  <div className="flex flex-wrap gap-3 mt-5">
+                    {allProgress.nextUnit && (
+                      <Link href={`/student/learn/${allProgress.nextUnit.id}`}>
+                        <Button>Open Unit</Button>
+                      </Link>
+                    )}
+                    <Link href="/student/courses">
+                      <Button variant="outline">All Courses</Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
-            )}
-          </motion.div>
+
+              {profile ? (
+                <BrainStyleCard dominant={profile.dominant} scores={profile.scores} />
+              ) : (
+                <Card className="border-amber-500/30 bg-amber-500/5">
+                  <CardContent className="p-6">
+                    <Sparkles className="w-8 h-8 text-amber-300 mb-3" />
+                    <h2 className="text-lg font-semibold text-white">Find your learning style</h2>
+                    <p className="text-sm text-navy-300 mt-2 mb-4">
+                      Take a short quiz so lessons can recommend story, calm, or game mode.
+                    </p>
+                    <Link href="/student/quiz/brain-profile">
+                      <Button variant="amber">Take Quiz</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          className="grid gap-4 md:grid-cols-3"
-        >
-          <Card className="hover:border-sky-500/30 transition-all duration-300 hover:scale-[1.01]">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
             <CardContent className="p-5">
-              <Clock3 className="w-7 h-7 text-sky-300 mb-3" />
-              <h3 className="font-semibold text-white">Time pressure</h3>
+              <GraduationCap className="w-7 h-7 text-violet-light mb-3" />
+              <h3 className="font-semibold text-white">Multiple classes</h3>
               <p className="text-sm text-navy-300 mt-2">
-                The dashboard always shows one next task to reduce decision fatigue.
+                Like Google Classroom — join every class you belong to and switch between them anytime.
               </p>
             </CardContent>
           </Card>
-          <Card className="hover:border-emerald-500/30 transition-all duration-300 hover:scale-[1.01]">
+          <Card>
             <CardContent className="p-5">
               <MessageCircle className="w-7 h-7 text-emerald-300 mb-3" />
-              <h3 className="font-semibold text-white">Feeling stuck</h3>
+              <h3 className="font-semibold text-white">Class chat</h3>
               <p className="text-sm text-navy-300 mt-2">
-                Open a unit and use the AI tutor for hints without leaving the lesson.
+                Each classroom has its own community. Use @Spark for AI help in any class.
               </p>
             </CardContent>
           </Card>
-          <Card className="hover:border-violet/30 transition-all duration-300 hover:scale-[1.01]">
+          <Card>
             <CardContent className="p-5">
-              <Users className="w-7 h-7 text-violet-light mb-3" />
-              <h3 className="font-semibold text-white">Learning alone</h3>
+              <Users className="w-7 h-7 text-sky-300 mb-3" />
+              <h3 className="font-semibold text-white">Stay on track</h3>
               <p className="text-sm text-navy-300 mt-2">
-                Visit community to ask classmates questions and see announcements.
+                Your dashboard shows the next best step across all your classes.
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
     </PageTransition>
   );

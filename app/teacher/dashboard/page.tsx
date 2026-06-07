@@ -106,11 +106,14 @@ export default function TeacherDashboard() {
 
   if (!data) {
     return (
-      <div className="p-8 text-center">
+      <div className="p-8 text-center max-w-md mx-auto">
         <h1 className="text-2xl font-bold text-white mb-4">Welcome to NeuroSpark!</h1>
-        <p className="text-navy-400 mb-6">Create a classroom to get started.</p>
+        <p className="text-navy-400 mb-6">
+          Create your first classroom, invite students, then add courses from the Courses page when
+          you&apos;re ready.
+        </p>
         <Button onClick={() => (window.location.href = "/teacher/onboarding")}>
-          Set Up Classroom
+          Create Classroom
         </Button>
       </div>
     );

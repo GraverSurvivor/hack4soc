@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { verifyClassroomAccess } from "@/lib/classroom-access";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ classroomId: string }> }
 ) {
   try {
-    await requireAuth();
+    const session = await requireAuth();
     const { classroomId } = await params;
+
+    const access = await verifyClassroomAccess(session.user.id, classroomId);
+    if (!access.allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const messages = await prisma.chatMessage.findMany({
       where: { classroomId },

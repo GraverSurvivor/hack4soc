@@ -6,9 +6,16 @@ import { brainProfileSchema } from "@/lib/validations";
 import { generateBrainProfileQuiz } from "@/lib/claude";
 import { awardBadge } from "@/lib/gamification";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    await requireAuth();
+    const session = await requireAuth();
+
+    if (req.nextUrl.searchParams.get("profile") === "1") {
+      const profile = await prisma.brainProfile.findUnique({
+        where: { userId: session.user.id },
+      });
+      return NextResponse.json(profile);
+    }
 
     const cached = await prisma.brainQuizCache.findUnique({
       where: { ageGroup: "8-16" },

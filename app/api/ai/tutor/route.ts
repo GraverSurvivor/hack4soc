@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { streamTutorResponse } from "@/lib/claude";
+import { parseCalmContent, parseStoryContent } from "@/lib/content";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
@@ -45,10 +46,10 @@ export async function POST(req: NextRequest) {
 
     const unitContent = `
 STORY MODE:
-${unit.storyMode}
+${parseStoryContent(unit.storyMode)}
 
 CALM VISUAL MODE:
-${unit.calmMode}
+${parseCalmContent(unit.calmMode)}
 
 GAME MODE:
 ${unit.gameMode}

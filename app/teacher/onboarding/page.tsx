@@ -2,30 +2,25 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Upload, Users, BookOpen, Check } from "lucide-react";
+import { Users, Share2, Check, BookOpen } from "lucide-react";
 
 const STEPS = [
-  { title: "Create Your Classroom", icon: Users },
-  { title: "Upload Course Content", icon: BookOpen },
-  { title: "Invite Students", icon: Upload },
+  { title: "Create Classroom", icon: Users },
+  { title: "Invite Students", icon: Share2 },
 ];
 
 export default function TeacherOnboarding() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [classroomName, setClassroomName] = useState("");
-  const [classroomId, setClassroomId] = useState("");
   const [inviteCode, setInviteCode] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [courseTitle, setCourseTitle] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [genProgress, setGenProgress] = useState("");
 
   const createClassroom = async () => {
     const res = await fetch("/api/classrooms", {
@@ -38,41 +33,9 @@ export default function TeacherOnboarding() {
       toast.error(data.error);
       return;
     }
-    setClassroomId(data.id);
     setInviteCode(data.inviteCode);
     setStep(1);
     toast.success("Classroom created!");
-  };
-
-  const uploadCourse = async () => {
-    if (!file || !courseTitle) {
-      toast.error("Please provide a file and course title");
-      return;
-    }
-    setGenerating(true);
-    setGenProgress("Extracting text from document...");
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("title", courseTitle);
-    formData.append("classroomId", classroomId);
-
-    setTimeout(() => setGenProgress("Generating your lessons... 🧠"), 2000);
-
-    try {
-      const res = await fetch("/api/courses/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setStep(2);
-      toast.success(`Course created with ${data.units.length} learning units!`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setGenerating(false);
-    }
   };
 
   return (
@@ -124,7 +87,8 @@ export default function TeacherOnboarding() {
               <div className="space-y-4">
                 <h2 className="text-xl font-bold text-white">Name Your Classroom</h2>
                 <p className="text-navy-400 text-sm">
-                  Give your class a name that students will recognize.
+                  Give your class a name that students will recognize. You can add courses later
+                  from the Courses page.
                 </p>
                 <div>
                   <Label>Classroom Name</Label>
@@ -146,47 +110,6 @@ export default function TeacherOnboarding() {
             )}
 
             {step === 1 && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold text-white">Upload Course Material</h2>
-                <p className="text-navy-400 text-sm">
-                  Upload a PDF, DOCX, PPTX, or TXT file. AI will transform it into inclusive lessons.
-                </p>
-                <div>
-                  <Label>Course Title</Label>
-                  <Input
-                    value={courseTitle}
-                    onChange={(e) => setCourseTitle(e.target.value)}
-                    placeholder="Introduction to Photosynthesis"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label>Course File (max 50MB)</Label>
-                  <input
-                    type="file"
-                    accept=".pdf,.docx,.pptx,.txt"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="mt-1 w-full text-sm text-navy-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-violet file:text-white file:cursor-pointer"
-                  />
-                </div>
-                {generating && (
-                  <div className="p-4 rounded-xl bg-violet/10 border border-violet/20">
-                    <p className="text-violet-light text-sm animate-pulse-soft">
-                      {genProgress}
-                    </p>
-                  </div>
-                )}
-                <Button
-                  onClick={uploadCourse}
-                  disabled={generating || !file || !courseTitle}
-                  className="w-full"
-                >
-                  {generating ? "Generating Lessons..." : "Upload & Generate"}
-                </Button>
-              </div>
-            )}
-
-            {step === 2 && (
               <div className="space-y-4 text-center">
                 <div className="text-5xl mb-4">🎉</div>
                 <h2 className="text-xl font-bold text-white">You&apos;re All Set!</h2>
@@ -197,11 +120,30 @@ export default function TeacherOnboarding() {
                   {inviteCode}
                 </div>
                 <p className="text-xs text-navy-500">
-                  Students enter this code when joining a classroom.
+                  Students enter this code at Join Classroom. They can join multiple classes.
                 </p>
+
+                <div className="rounded-xl border border-navy-600 bg-navy-900/50 p-4 text-left mt-4">
+                  <div className="flex gap-3">
+                    <BookOpen className="w-5 h-5 text-violet-light shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-white">Ready to add lessons?</p>
+                      <p className="text-xs text-navy-400 mt-1">
+                        Go to Courses to upload materials and generate AI-powered lessons when
+                        you&apos;re ready.
+                      </p>
+                      <Link href="/teacher/courses" className="inline-block mt-2">
+                        <Button variant="outline" size="sm">
+                          Go to Courses
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
                 <Button
                   onClick={() => router.push("/teacher/dashboard")}
-                  className="w-full"
+                  className="w-full mt-2"
                 >
                   Go to Dashboard
                 </Button>

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { splitIntoLevels } from "@/lib/utils";
-import { Zap, Star, Trophy } from "lucide-react";
+import { parseGameMode, type GameLevel } from "@/lib/content";
+import { Zap, Star, Trophy, Shield, Target } from "lucide-react";
 
 interface GameModeProps {
   content: string;
@@ -15,45 +15,55 @@ interface GameModeProps {
 }
 
 export function GameMode({ content, title, onComplete, largeFont = false }: GameModeProps) {
-  const levels = splitIntoLevels(content);
+  const gameData = useMemo(() => parseGameMode(content), [content]);
+  const levels = gameData.levels;
   const [currentLevel, setCurrentLevel] = useState(0);
   const [xp, setXp] = useState(0);
   const [showChallenge, setShowChallenge] = useState(false);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
-  const [hint, setHint] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [attempts, setAttempts] = useState(0);
 
-  const level = levels[currentLevel];
-  const totalXp = levels.length * 100;
-  const xpProgress = (xp / totalXp) * 100;
+  const level: GameLevel = levels[currentLevel] ?? { title: "Complete", body: "" };
+  const challenge = level.challenge;
+  const xpPerLevel = gameData.xpReward ? Math.round(gameData.xpReward / levels.length) : 100;
+  const totalXp = levels.length * xpPerLevel;
+  const xpProgress = Math.min(100, (xp / totalXp) * 100);
 
-  const challengeOptions = ["Got it!", "Need a hint", "Skip challenge"];
+  const advanceLevel = () => {
+    setFeedback(null);
+    setShowChallenge(false);
+    setSelectedIndex(null);
+    setShowHint(false);
+    setAttempts(0);
 
-  const handleAnswer = (answer: string) => {
-    setSelectedAnswer(answer);
-    if (answer === "Got it!") {
-      setFeedback("correct");
-      setXp((x) => x + 100);
-      setTimeout(() => {
-        setFeedback(null);
-        setShowChallenge(false);
-        setSelectedAnswer(null);
-        if (currentLevel < levels.length - 1) {
-          setCurrentLevel((l) => l + 1);
-        } else {
-          onComplete();
-        }
-      }, 1500);
-    } else if (answer === "Need a hint") {
-      setHint(true);
+    if (currentLevel < levels.length - 1) {
+      setCurrentLevel((l) => l + 1);
     } else {
-      if (currentLevel < levels.length - 1) {
-        setCurrentLevel((l) => l + 1);
-        setShowChallenge(false);
-      } else {
-        onComplete();
-      }
+      onComplete();
     }
+  };
+
+  const handleAnswer = (optionIndex: number) => {
+    if (feedback === "correct" || !challenge) return;
+
+    setSelectedIndex(optionIndex);
+    const isCorrect = optionIndex === challenge.correctIndex;
+
+    if (isCorrect) {
+      setFeedback("correct");
+      setXp((x) => x + xpPerLevel);
+      setTimeout(advanceLevel, 1400);
+    } else {
+      setFeedback("wrong");
+      setAttempts((a) => a + 1);
+    }
+  };
+
+  const handleLegacyContinue = () => {
+    setXp((x) => x + xpPerLevel);
+    advanceLevel();
   };
 
   return (
@@ -85,8 +95,10 @@ export function GameMode({ content, title, onComplete, largeFont = false }: Game
 
         <div className="mb-2">
           <div className="flex justify-between text-xs text-purple-300 mb-1">
-            <span>Quest Progress</span>
-            <span>Level {currentLevel + 1}/{levels.length}</span>
+            <span>{gameData.questTitle ?? "Quest Progress"}</span>
+            <span>
+              Level {currentLevel + 1}/{levels.length}
+            </span>
           </div>
           <Progress value={xpProgress} className="h-2 bg-purple-950" />
         </div>
@@ -124,7 +136,7 @@ export function GameMode({ content, title, onComplete, largeFont = false }: Game
                 onClick={() => setShowChallenge(true)}
                 className="mt-6 w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 shadow-glow"
               >
-                ⚔️ Accept Challenge
+                {challenge ? "⚔️ Accept Challenge" : "Continue →"}
               </Button>
             )}
           </motion.div>
@@ -137,41 +149,92 @@ export function GameMode({ content, title, onComplete, largeFont = false }: Game
               animate={{ opacity: 1, scale: 1 }}
               className="mt-4 rounded-2xl border border-game-neon/30 bg-purple-950/60 p-6"
             >
-              <p className="text-game-neon font-bold mb-4 text-center">
-                🎯 Level Challenge!
-              </p>
-              <p className="text-center text-purple-200 mb-4 text-sm">
-                Ready to unlock the next level?
-              </p>
+              {challenge ? (
+                <>
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <Target className="w-5 h-5 text-game-neon" />
+                    <p className="text-game-neon font-bold">Level Challenge</p>
+                  </div>
 
-              {hint && (
-                <p className="text-amber-300 text-sm text-center mb-4 bg-amber-900/20 rounded-lg p-3">
-                  💡 Hint: Review the key concept above — you&apos;ve got this!
-                </p>
-              )}
+                  <p className={`text-purple-100 mb-4 text-center ${largeFont ? "text-lg" : "text-base"}`}>
+                    {challenge.question}
+                  </p>
 
-              {feedback === "correct" && (
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  className="text-center text-game-neon font-bold text-xl mb-4"
-                >
-                  ✨ +100 XP! Amazing work!
-                </motion.div>
-              )}
+                  {showHint && challenge.hint && (
+                    <p className="text-amber-300 text-sm text-center mb-4 bg-amber-900/20 rounded-lg p-3">
+                      💡 {challenge.hint}
+                    </p>
+                  )}
 
-              <div className="grid gap-2">
-                {challengeOptions.map((opt) => (
+                  {feedback === "correct" && (
+                    <motion.div
+                      animate={{ scale: [1, 1.15, 1] }}
+                      className="text-center text-game-neon font-bold text-xl mb-4"
+                    >
+                      ✨ +{xpPerLevel} XP! Level cleared!
+                    </motion.div>
+                  )}
+
+                  {feedback === "wrong" && (
+                    <p className="text-center text-red-300 text-sm mb-4">
+                      Not quite — try again! {attempts >= 2 && "Use the hint if you need help."}
+                    </p>
+                  )}
+
+                  <div className="grid gap-2 mb-3">
+                    {challenge.options.map((opt, i) => {
+                      const letter = String.fromCharCode(65 + i);
+                      const isSelected = selectedIndex === i;
+                      const isCorrect = i === challenge.correctIndex;
+
+                      return (
+                        <Button
+                          key={opt}
+                          onClick={() => handleAnswer(i)}
+                          disabled={feedback === "correct"}
+                          variant={isSelected ? "default" : "outline"}
+                          className={`border-purple-700 text-purple-100 hover:bg-purple-800/50 justify-start ${
+                            feedback && isCorrect
+                              ? "border-green-500 bg-green-500/20"
+                              : feedback === "wrong" && isSelected
+                              ? "border-red-500 bg-red-500/20"
+                              : ""
+                          }`}
+                        >
+                          <span className="font-bold mr-2">{letter}.</span> {opt}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  {!showHint && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowHint(true)}
+                      className="w-full text-amber-300 hover:text-amber-200"
+                    >
+                      💡 Need a hint?
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <Shield className="w-5 h-5 text-game-neon" />
+                    <p className="text-game-neon font-bold">Checkpoint</p>
+                  </div>
+                  <p className="text-center text-purple-200 mb-4">
+                    Ready to move to the next level?
+                  </p>
                   <Button
-                    key={opt}
-                    onClick={() => handleAnswer(opt)}
-                    disabled={feedback === "correct"}
-                    variant={selectedAnswer === opt ? "default" : "outline"}
-                    className="border-purple-700 text-purple-100 hover:bg-purple-800/50"
+                    onClick={handleLegacyContinue}
+                    className="w-full bg-gradient-to-r from-purple-600 to-violet-600"
                   >
-                    {opt}
+                    Continue → +{xpPerLevel} XP
                   </Button>
-                ))}
-              </div>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useClassrooms } from "@/components/shared/ClassroomProvider";
 import { toast } from "sonner";
 
 export default function JoinClassroom() {
   const router = useRouter();
+  const { setActiveClassroom, refreshClassrooms, classrooms } = useClassrooms();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,8 +35,15 @@ export default function JoinClassroom() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      localStorage.setItem("classroomId", data.classroom.id);
-      toast.success(`Joined ${data.classroom.name}`);
+      const alreadyJoined = classrooms.some((c) => c.id === data.classroom.id);
+      setActiveClassroom(data.classroom.id);
+      await refreshClassrooms();
+
+      toast.success(
+        alreadyJoined
+          ? `You're already in ${data.classroom.name}`
+          : `Joined ${data.classroom.name}!`
+      );
       router.push("/student/home");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to join classroom");
@@ -55,8 +64,8 @@ export default function JoinClassroom() {
             <KeyRound className="w-10 h-10 text-violet-light mb-4" />
             <h1 className="text-2xl font-bold text-white">Join a Classroom</h1>
             <p className="text-navy-300 text-sm mt-2">
-              Enter the invite code from your teacher to unlock courses, units, quizzes,
-              badges, XP, and the class community.
+              Enter the invite code from your teacher. You can join multiple classes — they&apos;ll
+              all appear on your dashboard.
             </p>
             <div className="mt-6">
               <Label>Invite Code</Label>
@@ -82,9 +91,9 @@ export default function JoinClassroom() {
             <CardContent className="p-5 flex gap-4">
               <BookOpen className="w-7 h-7 text-amber-300 shrink-0" />
               <div>
-                <h2 className="font-semibold text-white">Where to find the code</h2>
+                <h2 className="font-semibold text-white">Multiple classes</h2>
                 <p className="text-sm text-navy-300 mt-1">
-                  Teachers usually share it on the board, in chat, or in a class announcement.
+                  Join math, science, and more — switch between them from the header anytime.
                 </p>
               </div>
             </CardContent>

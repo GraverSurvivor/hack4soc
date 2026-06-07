@@ -15,11 +15,11 @@ const MODE_PERSONAS: Record<LearningMode, string> = {
 
 const MODE_REQUIREMENTS: Record<LearningMode, string> = {
   story:
-    "For story mode, every unit must include narrative. The narrative must be a rich, engaging, and detailed story of around 600-800 words, using Spark as the guide, teaching only document-supported facts. To make it highly user-interactive, you MUST include at least one interactive choice block in the narrative in the exact format: [Interactive Choice: Option A text | Option B text] (for example: [Interactive Choice: Look inside the green leaf | Dig down to the root hairs]). Do not include other text inside the brackets, only the options separated by '|'.",
+    "For story mode, every unit must include narrative. The narrative should be about 500 words, use Spark as the guide, and teach only document-supported facts.",
   calm:
     "For calm mode, every unit must include cards. Use at most 6 cards. Each card must teach exactly one concept with concrete language.",
   game:
-    "For game mode, every unit must include questTitle, questObjective, and xpReward. Use short quest steps and readable rewards.",
+    "For game mode, every unit must include questTitle, questObjective, xpReward, and a levels array. Each level needs a title, body (short quest narrative), and a challenge object with a real multiple-choice question from the unit content.",
 };
 
 const FEW_SHOT_EXAMPLES: Record<LearningMode, Unit> = {
@@ -72,16 +72,28 @@ Return a raw JSON array. Each item must match exactly:
   "quizQuestions": [
     {
       "question": "string",
-      "options": ["array of exactly 4 strings for MCQs, OR empty array [] for short-answer questions"],
-      "correctIndex": "0, 1, 2, or 3 (number) for MCQs, OR a string containing the exact correct word/phrase for short-answers",
-      "explanation": "string explaining why it is correct"
+      "options": ["string", "string", "string", "string"],
+      "correctIndex": 0,
+      "explanation": "string"
     }
   ],
-  "narrative": "story mode only",
+  "narrative": "story mode only — about 400-600 words, Spark as guide",
   "cards": [{ "heading": "string", "body": "string" }],
   "questTitle": "game mode only",
   "questObjective": "game mode only",
-  "xpReward": 100
+  "xpReward": 100,
+  "levels": [
+    {
+      "title": "Level 1: string",
+      "body": "short quest narrative with emojis ok",
+      "challenge": {
+        "question": "string",
+        "options": ["string", "string", "string", "string"],
+        "correctIndex": 0,
+        "hint": "string"
+      }
+    }
+  ]
 }
 
 MODE-SPECIFIC REQUIREMENT:
@@ -95,11 +107,16 @@ STRICT RULES:
 - Generate multiple units only when the document has clear separate topics.
 - Never invent facts that are not in the document.
 - If the document suggests a diagram would help, add the exact text "[DIAGRAM_NEEDED: description]" inside the relevant unit content.
-- Each unit must include between 10 and 15 quizQuestions (exactly 10 is preferred).
-- The quiz questions MUST be strictly based on the technical, factual, and educational content of the unit. NEVER ask questions about the metadata, layout, document titles, or unit names (such as 'what is the title of the unit', 'what was the name of the section', 'what did this document cover', 'what is the name of the course'). Instead, quiz the student on the core scientific, historical, mathematical, or academic concepts and facts described in the unit content.
-- Include a mix of both multiple-choice questions (MCQs) and short-answer questions. At least 2 questions in each quiz must be short-answer type.
-- For multiple-choice questions (MCQs): options must always contain exactly 4 answer choices, and correctIndex must be a number (0, 1, 2, or 3).
-- For short-answer questions: options must be an empty array [], and correctIndex must be a string containing the exact correct answer word or phrase.
+- Each unit must include exactly 5 quizQuestions that test real understanding of the document (not trivia about formatting).
+- quizQuestions must vary in difficulty: 2 recall, 2 application, 1 synthesis question.
+- quizQuestions.options must always contain exactly 4 answer choices with one clearly correct answer.
+- Distractors must be plausible but clearly wrong to someone who read the material.
+- correctIndex must be 0, 1, 2, or 3.
+- Game mode must include exactly 3 levels, each with a unique challenge question drawn from the unit content.
+- Story narrative must feel like Spark guiding the student through the topic with dialogue and vivid examples.
+- Use vocabulary from the document; define terms in plain language.
+- conceptSummary must accurately preview what the unit teaches.
+- keyPoints must be specific facts from the document, not generic placeholders.
 - vocabulary must contain at most 10 items.
 - Use only document-supported vocabulary and examples.
 ${iepRules}`;

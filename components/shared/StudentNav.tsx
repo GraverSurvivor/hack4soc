@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, BookOpen, MessageCircle, Award, User, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ClassroomSwitcher } from "@/components/shared/ClassroomSwitcher";
 
 const NAV = [
   { href: "/student/home", label: "Home", icon: Home },
@@ -18,11 +19,14 @@ export function StudentNav() {
 
   return (
     <>
-      <header className="hidden md:flex items-center justify-between px-8 py-4 bg-navy-900 border-b border-navy-700">
-        <Link href="/student/home" className="flex items-center gap-2">
+      <header className="hidden md:flex items-center justify-between px-8 py-4 bg-navy-900 border-b border-navy-700 gap-4">
+        <Link href="/student/home" className="flex items-center gap-2 shrink-0">
           <Brain className="w-6 h-6 text-violet" />
           <span className="font-bold text-white">NeuroSpark</span>
         </Link>
+
+        <ClassroomSwitcher />
+
         <nav className="flex gap-1">
           {NAV.map((item) => {
             const Icon = item.icon;
@@ -45,6 +49,14 @@ export function StudentNav() {
           })}
         </nav>
       </header>
+
+      <div className="md:hidden px-4 py-3 bg-navy-900 border-b border-navy-700 flex items-center justify-between gap-2">
+        <Link href="/student/home" className="flex items-center gap-2 shrink-0">
+          <Brain className="w-5 h-5 text-violet" />
+          <span className="font-bold text-white text-sm">NeuroSpark</span>
+        </Link>
+        <ClassroomSwitcher compact />
+      </div>
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-navy-900 border-t border-navy-700 flex z-50">
         {NAV.map((item) => {

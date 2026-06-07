@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { verifyCourseAccess } from "@/lib/classroom-access";
 
 export async function GET(
   _req: NextRequest,
@@ -30,6 +31,11 @@ export async function GET(
 
     if (!course) {
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    }
+
+    const access = await verifyCourseAccess(session.user.id, id);
+    if (!access.allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json(course);

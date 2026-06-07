@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Award, Flame, GraduationCap, History, Star, Target } from "lucide-react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { BrainStyleCard } from "@/components/shared/BrainStyleCard";
+import { useClassrooms } from "@/components/shared/ClassroomProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -18,6 +19,7 @@ interface BrainProfile {
 
 export default function StudentProfile() {
   const { data: session } = useSession();
+  const { classrooms } = useClassrooms();
   const [profile, setProfile] = useState<BrainProfile | null>(null);
   const [xpData, setXpData] = useState<{
     xp: number;
@@ -30,25 +32,16 @@ export default function StudentProfile() {
     const userId = session?.user?.id;
     if (!userId) return;
 
-    fetch(`/api/students/${userId}/xp`)
-      .then((r) => r.json())
-      .then(setXpData);
-
-    const classroomId = localStorage.getItem("classroomId");
-    if (classroomId) {
-      fetch(`/api/classrooms/${classroomId}`)
-        .then((r) => r.json())
-        .then((data) => {
-          const me = data.members?.find(
-            (m: { user: { id: string; brainProfile?: BrainProfile } }) => m.user.id === userId
-          );
-          if (me?.user.brainProfile) setProfile(me.user.brainProfile);
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, [session?.user?.id]);
+    Promise.all([
+      fetch(`/api/students/${userId}/xp`).then((r) => r.json()),
+      fetch("/api/quiz/brain-profile?profile=1").then((r) => r.json()),
+    ])
+      .then(([xp, brain]) => {
+        setXpData(xp);
+        if (brain?.dominant) setProfile(brain);
+      })
+      .finally(() => setLoading(false));
+  }, [session]);
 
   const nextMilestone = useMemo(() => {
     const xp = xpData?.xp || 0;
@@ -67,6 +60,9 @@ export default function StudentProfile() {
             <div>
               <h1 className="text-2xl font-bold text-white">{session?.user?.name}</h1>
               <p className="text-navy-400 text-sm">{session?.user?.email}</p>
+              <p className="text-xs text-navy-500 mt-1">
+                {classrooms.length} classroom{classrooms.length !== 1 ? "s" : ""} joined
+              </p>
             </div>
           </div>
           <Link href="/student/quiz/brain-profile">
@@ -122,6 +118,27 @@ export default function StudentProfile() {
                 <Link href="/student/quiz/brain-profile">
                   <Button variant="amber" size="sm">Take Quiz</Button>
                 </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {classrooms.length > 0 && (
+          <Card>
+            <CardContent className="p-5">
+              <h3 className="font-semibold text-white mb-3">My Classrooms</h3>
+              <div className="space-y-2">
+                {classrooms.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex justify-between items-center text-sm py-2 border-b border-navy-700 last:border-0"
+                  >
+                    <span className="text-navy-200">{c.name}</span>
+                    <span className="text-navy-400">
+                      {c._count?.courses ?? c.courses?.length ?? 0} courses
+                    </span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
